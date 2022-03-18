@@ -2,14 +2,19 @@
 
 #include "PTCTypes.h"
 #include "PawaCodeConverter.h"
+#include "PawaTable.h"
 
 pawacode::PawaCode::PawaCode(){};
 
 
 u16 pawacode::PawaCode::ToShiftJIS(u16 input)
 {
+	if (input == 0xFFFF) {
+		return 0xFFFF;
+	}
+
 	u16 input12bit = input & 0x0FFF; //ï∂éöÉRÅ[Éh
-	return 0;
+	return input12bit;
 }
 
 u16 pawacode::PawaCode::ToPawaCode(u16 input) {
@@ -44,17 +49,18 @@ u16 pawacode::PawaCode::ToPawaCode(u16 input) {
 		if (input <= 0x84BE) {
 			pcode = ((row - 1) * 0x5E) + cell - 1;
 		}
-
-
 		//äøéö
 		else {
 			pcode = ((row - 1) * 0x5E) + cell - 0x2C1;
 		}
-
 	}
-	//ì¡éÍäøéöï∂éöîªíË
+	//í«â¡äøéöîªíË
 	else {
-
+		for (int i = 0; i < numofTBL10k; ++i) {
+			if (input == specialcharacter[i][0]) {
+				pcode = specialcharacter[i][1];
+			}
+		}
 	}
 	
 

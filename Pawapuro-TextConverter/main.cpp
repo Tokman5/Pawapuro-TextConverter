@@ -12,6 +12,10 @@
 //ファイルポインタ
 std::FILE* fp;
 
+//シフトJIS→パワプロ文字コードモード
+namespace {
+	u8 Displaymode = 0;
+}
 
 bool searchHelpCommand(size_t argc, char* argv[]) {
 
@@ -29,9 +33,11 @@ void ToShiftJISMode()
 {
 	u16 inputchar;
 	pawacode::PawaCode pcc;
+
+	std::cout << "\nパワプロ文字コード→シフトJIS";
 	while (true) {
 
-		std::cout << "パワプロ文字コード→シフトJIS\n変換したいバイトを入力してください。(2バイト,Hex)\n";
+		std::cout << "\n変換したいバイトを入力してください。(2バイト,Hex)\n";
 		std::cin >> std::hex >> inputchar;
 		//入力エラー処理
 		if (std::cin.fail()) {
@@ -42,7 +48,7 @@ void ToShiftJISMode()
 		}
 		else {
 
-			std::cout << std::hex << inputchar << std::endl;
+			std::printf( "Output: %04X\n", pcc.ToShiftJIS(inputchar));
 		}
 	}
 	return;
@@ -52,9 +58,11 @@ void ToPawaCodeMode()
 {
 	std::string inputstring;
 	pawacode::PawaCode pcc;
+
+	std::cout << "\nシフトJIS→パワプロ文字コード";
 	while (true) {
 
-		std::cout << "シフトJIS→パワプロ文字コード\n変換したい文字を入力してください。(2バイト文字)\n";
+		std::cout << "\n変換したい文字を入力してください。(2バイト文字、endで終了)\n";
 		std::cin >> inputstring;
 		//入力エラー処理
 		if (std::cin.fail()) {
@@ -64,8 +72,12 @@ void ToPawaCodeMode()
 			continue;
 		}
 		else {
+			if (inputstring == "end") {
+				break;
+			}
+			//文字処理
 			int bytecount = 0;
-			u16 character = 0;
+			u32 character = 0;
 			for (auto v : inputstring) {
 
 				character += static_cast<u8>(v);
@@ -76,8 +88,15 @@ void ToPawaCodeMode()
 					continue;
 				}
 				else {
+					if (Displaymode == 0) {
+						std::cout << std::hex << character << " : " << pcc.ToPawaCode(character) << std::endl;
+					}
+					else {
+						char mulchar[]{ static_cast<char>(character >> 8),static_cast<char>(character & 0xFF), NULL };
+						std::printf("%s : %04X\n", mulchar , pcc.ToPawaCode(character));
+					}
 
-					std::cout << std::hex << character << " : " << pcc.ToPawaCode(character) << std::endl;
+
 					character = 0;
 					bytecount = 0;
 				}
@@ -102,18 +121,23 @@ int main(size_t argc, char* argv[]) {
 
 
 
-//	pawacode::PawaCode pcc;
+
 
 	
 //////////////////////引数無しなら入力受付モード////////////////////////////
 	if (argc <= 1)
 	{
 		int convmode = 0;
-		std::cout << "変換モードを選んでください。\n1:パワプロ文字コード→シフトJIS\n2:シフトJIS→パワプロ文字コード\n";
+		std::cout << "変換モードを選んでください。\n1:パワプロ文字コード→シフトJIS\n2:シフトJIS→パワプロ文字コード\n3:シフトJIS(文字表示)→パワプロ文字コード\n";
 		std::cin >> convmode;
 
 		//SJIS to PawaCode モード
 		if (convmode == 2) {
+			Displaymode = 0;
+			ToPawaCodeMode();
+		}
+		else if (convmode == 3) {
+			Displaymode = 1;
 			ToPawaCodeMode();
 		}
 		//PawaCode to SJIS モード
