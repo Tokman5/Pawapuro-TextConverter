@@ -93,7 +93,7 @@ void ToPawaCodeMode()
 					}
 					else {
 						char mulchar[]{ static_cast<char>(character >> 8),static_cast<char>(character & 0xFF), NULL };
-						std::printf("%s : %04X\n", mulchar , pcc.ToPawaCode(character));
+						std::printf("%s : %04X\n", mulchar, pcc.ToPawaCode(character));
 					}
 
 

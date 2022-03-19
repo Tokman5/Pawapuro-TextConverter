@@ -56,7 +56,7 @@ u16 pawacode::PawaCode::ToPawaCode(u16 input) {
 	}
 	//’Ç‰ÁŠ¿Žš”»’è
 	else {
-		for (int i = 0; i < numofTBL10k; ++i) {
+		for (int i = 0; i < numofTBL12k; ++i) {
 			if (input == specialcharacter[i][0]) {
 				pcode = specialcharacter[i][1];
 			}
