@@ -32,12 +32,12 @@ bool searchHelpCommand(size_t argc, char* argv[]) {
 void ToShiftJISMode() 
 {
 	u16 inputchar;
-	pawacode::PawaCode pcc;
+	pawacode::PawaCode pcc(pawacode::Target::pawa12k);
 
 	std::cout << "\nパワプロ文字コード→シフトJIS";
 	while (true) {
 
-		std::cout << "\n変換したいバイトを入力してください。(2バイト,Hex)\n";
+		std::cout << "\n変換したいバイトを入力してください。(2バイト,Hex,0xFFFFで終了)\n";
 		std::cin >> std::hex >> inputchar;
 		//入力エラー処理
 		if (std::cin.fail()) {
@@ -47,8 +47,11 @@ void ToShiftJISMode()
 			continue;
 		}
 		else {
+			if (inputchar == 0xFFFF) {
+				break;
+			}
 
-			std::printf( "Output: %04X\n", pcc.ToShiftJIS(inputchar));
+			std::printf( "Output: %04X\n", pcc.PCodeToSJIS(inputchar));
 		}
 	}
 	return;
@@ -57,7 +60,7 @@ void ToShiftJISMode()
 void ToPawaCodeMode()
 {
 	std::string inputstring;
-	pawacode::PawaCode pcc;
+	pawacode::PawaCode pcc(pawacode::Target::pawa12k);
 
 	std::cout << "\nシフトJIS→パワプロ文字コード";
 	while (true) {
@@ -79,21 +82,20 @@ void ToPawaCodeMode()
 			int bytecount = 0;
 			u32 character = 0;
 			for (auto v : inputstring) {
-
 				character += static_cast<u8>(v);
-
+				//1バイト目なら上位バイトに保存しもう1バイト読み込む
 				if (bytecount == 0) {
 					character = (character << 8);
 					++bytecount;
 					continue;
 				}
-				else {
+				else {	//文字表示処理
 					if (Displaymode == 0) {
-						std::cout << std::hex << character << " : " << pcc.ToPawaCode(character) << std::endl;
+						std::printf("%04X : %04X\n", character, pcc.SJISToPCode(character));
 					}
 					else {
 						char mulchar[]{ static_cast<char>(character >> 8),static_cast<char>(character & 0xFF), NULL };
-						std::printf("%s : %04X\n", mulchar, pcc.ToPawaCode(character));
+						std::printf("%s : %04X\n", mulchar, pcc.SJISToPCode(character));
 					}
 
 
@@ -111,20 +113,11 @@ void ToPawaCodeMode()
 int main(size_t argc, char* argv[]) {
 
 	if (searchHelpCommand(argc, argv)) {
-		std::cerr << "Usage: Pawapuro-TextConverter.exe [OPTION]" << std::endl;
+		fprintf(stderr, "Usage: Pawapuro-TextConverter.exe [OPTION]\n" );
 		return 0;
 	}
 
-	for (size_t i = 0; i < argc; ++i) {
-		std::printf("%s\n", argv[i]);
-	}
-
-
-
-
-
-	
-//////////////////////引数無しなら入力受付モード////////////////////////////
+//引数無しなら入力受付モード
 	if (argc <= 1)
 	{
 		int convmode = 0;

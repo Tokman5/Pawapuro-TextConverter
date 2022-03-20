@@ -1,15 +1,18 @@
 #pragma once
 #include "PTCTypes.h"
 
-const u16 numofTBL8 = 39;		//吉まで
-const u16 numofTBL9k = 48;		//國まで
-const u16 numofTBL10k = 49;		//邉まで
-const u16 numofTBL11k = 53;		//燁まで
-const u16 numofTBL12k = 57;		//韋まで
+constexpr u16 numofTBL8 = 39;		//吉まで
+constexpr u16 numofTBL9k = 48;		//國まで
+constexpr u16 numofTBL10 = 49;		//邉まで
+constexpr u16 numofTBL10k = 49;		//邉まで
+constexpr u16 numofTBL11k = 53;		//燁まで
+constexpr u16 numofTBL12k = 57;		//韋まで
 
-/////特殊文字テーブル、8、9決、10決、11決///////
-							//礒 壹 櫻
-static const u16 specialcharacter[][2]{ {0xE245,0x0E57} , {0x9AE3,0x0E58} , {0x9F4E ,0x0E59},
+//特殊文字テーブル、8～12決
+// [SJIS][パワ文字コード]
+static const u16 specialcharacter[][2]{ 
+	//礒 壹 櫻
+	{0xE245,0x0E57} , {0x9AE3,0x0E58} , {0x9F4E ,0x0E59},
 	//凰 廣 舩 餃
 	{0x9980,0x0E5A}, {0x9C41,0x0E5B}, {0xE474 ,0x0E5C},{0xE94C,0x0E5D},
 	//腱 皓 澤 條
