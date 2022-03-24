@@ -164,6 +164,9 @@ void FileReadMode(std::fstream* file)
 		buffer = 0;
 	}
 
+	if (data) {
+		delete[] data;
+	}
 }
 
 int main(size_t argc, char* argv[]) {
