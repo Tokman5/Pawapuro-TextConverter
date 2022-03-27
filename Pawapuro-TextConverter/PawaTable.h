@@ -1,5 +1,7 @@
 #pragma once
 #include "PTCTypes.h"
+#include <unordered_map>
+#include <tuple>
 
 constexpr u16 numofTBL8 = 39;		//吉まで
 constexpr u16 numofTBL9k = 48;		//國まで
@@ -39,4 +41,20 @@ static const u16 specialcharacter[][2]{
 	{0xE4DD,0x0E88},{0xE7AF,0x0E89},{0xE095,0x0E8A},{0xFB59,0x0E8B},
 	//筧 嶌 鯱 韋
 	{0xE2A8,0x0E8C},{0x9BB8,0x0E8D},{0xE9CD,0x0E8E},{0xE8E8,0x0E8F}
+};
+
+//サクセスモード　Commandモード時のコマンドリスト
+//u16 キー、value= int 追加で2バイト読む回数（2バイト読むなら 1 ）、string コンバータ用文字列、int 代替文字列の文字数
+ static const std::unordered_map<u16, std::tuple<int, std::string, int > > TBL_successcommand{
+	{0x0000 ,{0, "　",0}}, {0x0001 ,{0, "\n",0}}, {0x0002 ,{0, "\n",0}}, {0x0003 ,{0, "\n",0}},
+	{0x0005 ,{0, "　",0}}, {0x0006 ,{0, "\n",0}}, {0x0007 ,{0, "\n",0}}, {0x0009 ,{0, "[SKIP]",0}},
+	{0x000A ,{1, "[0x0A:",0}}, {0x000B ,{1, "[Goto:",0}}, 
+	{0x000C ,{1, "[Gosub:",0}}, {0x000D ,{1, "[選択肢:",0}}, {0x000E ,{2, "[分岐:",0}}, 
+	{0x0024 ,{0, "[0x24]",0}},
+	{0x002F, {1,"[0x2F:",0}},
+	{0x0031 ,{0, "[主人公]",3}},{0x0032 ,{1, "[左1顔:",0}}, {0x0033 ,{1, "[左2顔:",0}}, 
+	{0x0034 ,{1, "[右1顔:",0}}, {0x0035 ,{1, "[右2顔:",0}}, 
+	{0x0039 ,{1, "[背景:",0}}, {0x003A ,{1, "[音:",0}},
+
+	{0x0040 ,{1, "[0x40:",0}}, 
 };

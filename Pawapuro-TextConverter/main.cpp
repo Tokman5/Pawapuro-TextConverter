@@ -121,52 +121,70 @@ void ToPawaCodeMode()
 
 void FileReadMode(std::fstream* file)
 {
-	u16 inputchar = 0;
-	u8 buffer = 0;
 	int bytecount = 0;
 	pawacode::PawaCode pcc(pawacode::Target::pawa10k);
 	
 	file->seekg(0, std::ios::end);
 	size_t size = file->tellg();
 	file->seekg(0);
-	std::printf("size: %zX\n", size);
+	//std::printf("size: %zX\n", size);
 
 	u8* data = new u8[size];
 	file->read(reinterpret_cast<char*>(data), size);
 
-	u8 dispcount = 0;
-	for (size_t i = 0; i <= size; ++i) {
-		if (bytecount == 0 ){
-			buffer = data[i];
-			++bytecount;
-			continue;
-		}
-		else {
-			inputchar = buffer + (data[i] << 8);
-			u16 ans = pcc.PCodeToSJIS(inputchar);
-			if ((ans & 0x0FFF) >= 0x0FFE) {
-				std::printf("\n");
-				dispcount = 0;
+	{
+		u16 inputchar = 0;
+		u8 buffer = 0;
+		int dispcount = 0;
+		std::string dispChar;
+		int moji_size = 0;
+		for (size_t i = 0; i <= size; ++i) {
+			/*
+			if (bytecount == 0 ){
+				buffer = data[i];
+				++bytecount;
+				continue;
 			}
 			else {
-				u8 anschar[3]{ (ans >> 8),(ans & 0xFF),NULL };
-				std::printf("%s", anschar);
-				++dispcount;
-				if (dispcount >= 18) {
+				inputchar = buffer + (data[i] << 8);
+				u16 ans = pcc.PCodeToSJIS(inputchar);
+				if ((ans & 0x0FFF) >= 0x0FFE) {
 					std::printf("\n");
 					dispcount = 0;
 				}
+				else {
+					u8 anschar[3]{ (ans >> 8),(ans & 0xFF),NULL };
+					std::printf("%s", anschar);
+					++dispcount;
+					if (dispcount >= 18) {
+						std::printf("\n");
+						dispcount = 0;
+					}
+				}
+
+			}
+			bytecount = 0;
+			inputchar = 0;
+			buffer = 0;
+			*/
+
+			buffer = data[i];
+			pawacode::FuncState stat = pcc.PCodeToSJIS(buffer, pawacode::TargetGameMode::success, &dispChar, &moji_size);
+			if (stat == pawacode::FuncState::pushedstring) {
+				std::printf("%s", dispChar.c_str());
+				//dispcount += moji_size;
+				//if ((moji_size == -1) || (dispcount >= 18)) {
+				if (moji_size == -1) {
+					std::printf("\n");
+					dispcount = 0;
+				}
+
 			}
 
 		}
-		bytecount = 0;
-		inputchar = 0;
-		buffer = 0;
 	}
 
-	if (data) {
 		delete[] data;
-	}
 }
 
 int main(size_t argc, char* argv[]) {
