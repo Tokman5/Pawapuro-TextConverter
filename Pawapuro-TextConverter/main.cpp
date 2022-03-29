@@ -10,12 +10,10 @@
 #include "PTCTypes.h"
 
 
-//ファイルポインタ
-std::FILE* fp;
 
-//シフトJIS→パワプロ文字コードモード
 namespace {
-	u8 Displaymode = 0;
+	u8 display_mode = 0; //0 = 数字表示　1 = 文字表示
+	int log_level = 0;	//特殊コマンドの出力レベル　0=改行、[主人公]のみ　1=通常　2=全出力
 }
 
 bool searchHelpCommand(size_t argc, char* argv[]) {
@@ -29,6 +27,25 @@ bool searchHelpCommand(size_t argc, char* argv[]) {
 	return false;
 }
 
+int serarchLogLevelCommand(size_t argc, char* argv[]) {
+	int ans = 0;
+	for (size_t i = 1; i < argc; ++i) {
+		if ((strcmp("-v0", argv[i]) == 0)) {
+			ans = 0;
+			break;
+		}
+		else if ((strcmp("-v1", argv[i]) == 0)) {
+			ans = 1;
+			break;
+		}
+		else if ((strcmp("-v2", argv[i]) == 0)) {
+			ans = 2;
+			break;
+		}
+	}
+
+	return ans;
+}
 
 void ToShiftJISMode() 
 {
@@ -53,7 +70,7 @@ void ToShiftJISMode()
 			}
 			u16 ans = pcc.PCodeToSJIS(inputchar);
 
-			if (Displaymode == 0) {
+			if (display_mode == 0) {
 				std::printf("Output: %04X\n", ans);
 			}
 			else {
@@ -98,7 +115,7 @@ void ToPawaCodeMode()
 					continue;
 				}
 				else {	//文字表示処理
-					if (Displaymode == 0) {
+					if (display_mode == 0) {
 						std::printf("%04X : %04X\n", character, pcc.SJISToPCode(character));
 					}
 					else {
@@ -139,41 +156,10 @@ void FileReadMode(std::fstream* file)
 		std::string dispChar;
 		int moji_size = 0;
 		for (size_t i = 0; i <= size; ++i) {
-			/*
-			if (bytecount == 0 ){
-				buffer = data[i];
-				++bytecount;
-				continue;
-			}
-			else {
-				inputchar = buffer + (data[i] << 8);
-				u16 ans = pcc.PCodeToSJIS(inputchar);
-				if ((ans & 0x0FFF) >= 0x0FFE) {
-					std::printf("\n");
-					dispcount = 0;
-				}
-				else {
-					u8 anschar[3]{ (ans >> 8),(ans & 0xFF),NULL };
-					std::printf("%s", anschar);
-					++dispcount;
-					if (dispcount >= 18) {
-						std::printf("\n");
-						dispcount = 0;
-					}
-				}
-
-			}
-			bytecount = 0;
-			inputchar = 0;
-			buffer = 0;
-			*/
-
 			buffer = data[i];
-			pawacode::FuncState stat = pcc.PCodeToSJIS(buffer, pawacode::TargetGameMode::success, &dispChar, &moji_size);
+			pawacode::FuncState stat = pcc.PCodeToSJIS(buffer, pawacode::TargetGameMode::success, log_level, &dispChar, &moji_size);
 			if (stat == pawacode::FuncState::pushedstring) {
 				std::printf("%s", dispChar.c_str());
-				//dispcount += moji_size;
-				//if ((moji_size == -1) || (dispcount >= 18)) {
 				if (moji_size == -1) {
 					std::printf("\n");
 					dispcount = 0;
@@ -184,24 +170,30 @@ void FileReadMode(std::fstream* file)
 		}
 	}
 
-		delete[] data;
+	delete[] data;
 }
 
 int main(size_t argc, char* argv[]) {
 
 	if (searchHelpCommand(argc, argv)) {
-		fprintf(stderr, "Usage: Pawapuro-TextConverter.exe [OPTION]\n" );
+		std::cerr << R"**(Usage:	Pawapuro-TextConverter.exe
+	Pawapuro-TextConverter.exe [FILE] [OPTION]
+No Commands Specified: Interactive Mode
+OPTION:
+-v0 -v1 -v2		Log Level: 0 = Minimal, 1 = Normal, 2 = Verbose)**" << std::endl;
 		return 0;
 	}
 
 	//引数ありでファイル読み込みモード
-	if (argc == 2) {
+	if (argc >= 2) {
 		std::fstream binfile(argv[1], std::ios::in | std::ios::binary);
 		if (!binfile) {
 			std::fprintf(stderr, "エラー:ファイルを開くことができませんでした\nFile: %s\n", argv[1]);
 			return 1;
 		}
 		
+		log_level = serarchLogLevelCommand(argc, argv);
+
 		FileReadMode(&binfile);
 
 		if (binfile) {
@@ -213,27 +205,40 @@ int main(size_t argc, char* argv[]) {
 	else if (argc <= 1)
 	{
 		int convmode = 0;
-		std::cout << "変換モードを選んでください。\n1:パワプロ文字コード→シフトJIS\n2:パワプロ文字コード→シフトJIS(文字表示)\n\
-3:シフトJIS→パワプロ文字コード\n4:シフトJIS(文字表示)→パワプロ文字コード\n";
-		std::cin >> convmode;
+		while (true) {
+			std::cout <<
+"変換モードを選んでください。\n1:パワプロ文字コード→シフトJIS\n2:パワプロ文字コード→シフトJIS(文字表示)\n\
+3:シフトJIS→パワプロ文字コード\n4:シフトJIS(文字表示)→パワプロ文字コード\n5:プログラムを終了\n";
+			std::cin >> convmode;
 
-		if (convmode == 2) {
-			Displaymode = 1;
-			ToShiftJISMode();
-		}
-		//SJIS to PawaCode モード
-		else if (convmode == 3) {
-			Displaymode = 0;
-			ToPawaCodeMode();
-		}
-		else if (convmode == 4) {
-			Displaymode = 1;
-			ToPawaCodeMode();
-		}
-		//PawaCode to SJIS モード
-		else {
-			Displaymode = 0;
-			ToShiftJISMode();
+			if (std::cin.fail()) {
+				std::cin.clear();
+				std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+				std::cerr << "入力エラー" << std::endl;
+				continue;
+			}
+
+			if (convmode == 2) {
+				display_mode = 1;
+				ToShiftJISMode();
+			}
+			//SJIS to PawaCode モード
+			else if (convmode == 3) {
+				display_mode = 0;
+				ToPawaCodeMode();
+			}
+			else if (convmode == 4) {
+				display_mode = 1;
+				ToPawaCodeMode();
+			}
+			else if (convmode == 5) {
+				break;
+			}
+			//PawaCode to SJIS モード
+			else if (convmode == 1) {
+				display_mode = 0;
+				ToShiftJISMode();
+			}
 		}
 
 	}

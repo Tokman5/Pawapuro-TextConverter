@@ -1,4 +1,6 @@
 #include <string>
+#include <unordered_map>
+#include <tuple>
 #include "PTCTypes.h"
 #include "PawaCodeConverter.h"
 #include "PawaTable.h"
@@ -134,7 +136,7 @@ u16 pawacode::PawaCode::SJISToPCode(u16 input) {
 	return pcode;
 }
 
-pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(u8 input, pawacode::TargetGameMode target, std::string* ret, int* numofRealChar)
+pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(u8 input, pawacode::TargetGameMode target, int loglvl, std::string* ret, int* numofRealChar)
 {
 	using namespace pawacode;
 
@@ -143,6 +145,7 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(u8 input, pawacode::TargetGa
 		static std::string str_for_command{};
 		static int command_StringCount = 0;
 		static int count_of_more_u16 = 0;
+		static int last_log_level = 0;
 		//下位バイト待ちの時
 		if ((this->m_funcstate == FuncState::request_LObyte) || (this->m_funcstate == FuncState::pushedstring)) {
 			m_cvtbuffer32 = input;
@@ -167,14 +170,16 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(u8 input, pawacode::TargetGa
 			}
 			else if ((m_commandmode == CommandMode::Command) && (count_of_more_u16 > 0)) {
 				//Commandモードで追加のバイトを読み込んだ時
-				char conv[10];
-				std::snprintf(conv, 10, "%04X", m_cvtbuffer32);
-				str_for_command += conv;
-				if (count_of_more_u16 == 1) {
-					str_for_command += "]";
-				}
-				else {
-					str_for_command += ":";
+				if (loglvl >= last_log_level) {
+					char conv[10];
+					std::snprintf(conv, 10, "%04X", m_cvtbuffer32);
+					str_for_command += conv;
+					if (count_of_more_u16 == 1) {
+						str_for_command += "]";
+					}
+					else {
+						str_for_command += ":";
+					}
 				}
 				--count_of_more_u16;
 			}
@@ -184,9 +189,12 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(u8 input, pawacode::TargetGa
 				if (it != TBL_successcommand.end()) {
 					//指定したコマンドがテーブルから見つかった時の処理
 					count_of_more_u16 = std::get<0>(it->second);
-					str_for_command += std::get<1>(it->second);
-					command_StringCount += std::get<2>(it->second);
-
+					last_log_level = std::get<3>(it->second);
+					//入力したログレベルがテーブルのものよりも高ければ文字表示
+					if (loglvl >= last_log_level) {
+						str_for_command += std::get<1>(it->second);
+						command_StringCount += std::get<2>(it->second);
+					}
 				}
 				else {
 					//未登録の時の処理
