@@ -30,7 +30,7 @@ namespace pawacode {
 			PawaCode(pawacode::Target tar);
 			u16 PCodeToSJIS(u16 input);
 			u16 SJISToPCode(u16 input); //ShiftJIS‚©‚ç‚Ì•ÏŠ·
-			FuncState PCodeToSJIS(u8 input, TargetGameMode target, int loglvl, std::string* ret, int* numofRealChar);
+			FuncState PCodeToSJIS(const u8 input, const TargetGameMode target, const int loglvl, std::string* ret, int* numofRealChar);
 			FuncState GetFuncState() const { return m_funcstate; };
 		private:
 

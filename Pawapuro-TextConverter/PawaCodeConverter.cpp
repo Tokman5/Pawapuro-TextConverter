@@ -136,7 +136,7 @@ u16 pawacode::PawaCode::SJISToPCode(u16 input) {
 	return pcode;
 }
 
-pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(u8 input, pawacode::TargetGameMode target, int loglvl, std::string* ret, int* numofRealChar)
+pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(const u8 input, const pawacode::TargetGameMode target, const int loglvl, std::string* ret, int* numofRealChar)
 {
 	using namespace pawacode;
 
