@@ -12,7 +12,7 @@
 
 
 namespace {
-	u8 display_mode = 0; //0 = 数字表示　1 = 文字表示
+	u8 display_mode = 0; //0 = 数字表示　1 = 文字表示、2 = バイト列
 	int log_level = 0;	//特殊コマンドの出力レベル　0=改行、[主人公]のみ　1=通常　2=全出力
 	pawacode::Target target_game;
 	pawacode::TargetGameMode target_gamemode;
@@ -159,11 +159,14 @@ void ToPawaCodeMode()
 					if (display_mode == 0) {
 						std::printf("%04X : %04X\n", character, pcc.SJISToPCode(character));
 					}
+					else if (display_mode == 2) {
+						u16 buf = pcc.SJISToPCode(character);
+						std::printf("%02X %02X ", buf & 0xFF, buf >> 8);
+					}
 					else {
 						char mulchar[]{ static_cast<u8>(character >> 8),static_cast<u8>(character & 0xFF), NULL };
 						std::printf("%s : %04X\n", mulchar, pcc.SJISToPCode(character));
 					}
-
 
 					character = 0;
 					bytecount = 0;
@@ -260,6 +263,7 @@ OPTION:
 		}
 
 	}
+
 	//引数無しなら入力受付モード
 	else if (argc <= 1)
 	{
@@ -267,7 +271,7 @@ OPTION:
 		while (true) {
 			std::cout <<
 "変換モードを選んでください。\n1:パワプロ文字コード→シフトJIS\n2:パワプロ文字コード→シフトJIS(文字表示)\n\
-3:シフトJIS→パワプロ文字コード\n4:シフトJIS(文字表示)→パワプロ文字コード\n5:プログラムを終了\n";
+3:シフトJIS→パワプロ文字コード\n4:シフトJIS→パワプロ文字コード(文字表示)\n5:シフトJIS→パワプロ文字コード(バイト列)\n6:プログラムを終了\n";
 			std::cin >> convmode;
 
 			if (std::cin.fail()) {
@@ -277,7 +281,11 @@ OPTION:
 				continue;
 			}
 
-			if (convmode == 2) {
+			if (convmode == 1) {
+				display_mode = 0;
+				ToShiftJISMode();
+			}
+			else if (convmode == 2) {
 				display_mode = 1;
 				ToShiftJISMode();
 			}
@@ -290,11 +298,11 @@ OPTION:
 				ToPawaCodeMode();
 			}
 			else if (convmode == 5) {
-				break;
+				display_mode = 2;
+				ToPawaCodeMode();
 			}
-			else if (convmode == 1) {
-				display_mode = 0;
-				ToShiftJISMode();
+			else if (convmode == 6) {
+				break;
 			}
 		}
 
