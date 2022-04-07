@@ -47,5 +47,10 @@ namespace pawacode {
 			}m_commandmode;
 
 			u16 m_SJISbuffer16;
+			//successˆ—
+			int m_command_StringCount;
+			int m_count_of_more_u16;
+			int m_last_log_level;
+			std::string m_str_for_command;
 	};
 }

@@ -73,7 +73,7 @@ pawacode::Target searchTargetPawaGame(size_t argc, char* argv[]) {
 
 pawacode::TargetGameMode searchTargetGameMode(size_t argc, char* argv[]) {
 	using namespace pawacode;
-	TargetGameMode ans = TargetGameMode::success;
+	TargetGameMode ans = TargetGameMode::none;
 	for (size_t i = 1; i < argc - 1; ++i) {
 		if ((strcmp("-g", argv[i]) == 0) || (strcmp("--gamemode", argv[i]) == 0)) {
 			if ((strcmp("normal", argv[i + 1]) == 0)|| (strcmp("none", argv[i + 1]) == 0)) {

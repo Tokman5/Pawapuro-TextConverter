@@ -12,7 +12,11 @@ pawacode::PawaCode::PawaCode(pawacode::Target tar) :
 	m_funcstate(FuncState::request_LObyte),
 	m_cvtbuffer32(0),
 	m_commandmode(pawacode::PawaCode::CommandMode::Normal),
-	m_SJISbuffer16(0)
+	m_SJISbuffer16(0),
+	m_command_StringCount(0),
+	m_count_of_more_u16(0),
+	m_last_log_level(0),
+	m_str_for_command("")
 {
 	u16 number;
 
@@ -142,10 +146,7 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(const u8 input, const pawaco
 
 	//サクセスモードのテキスト処理
 	if (target == TargetGameMode::success) {
-		static std::string str_for_command{};
-		static int command_StringCount = 0;
-		static int count_of_more_u16 = 0;
-		static int last_log_level = 0;
+		
 		//下位バイト待ちの時
 		if ((this->m_funcstate == FuncState::request_LObyte) || (this->m_funcstate == FuncState::pushedstring)) {
 			m_cvtbuffer32 = input;
@@ -156,7 +157,7 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(const u8 input, const pawaco
 		else if (this->m_funcstate == FuncState::request_HIbyte) {
 			m_cvtbuffer32 += (static_cast<u16>(input) << 8);
 
-			if ((m_commandmode == CommandMode::Command) && (count_of_more_u16 == 0) && (m_cvtbuffer32 == 0x0000)) {
+			if ((m_commandmode == CommandMode::Command) && (m_count_of_more_u16 == 0) && (m_cvtbuffer32 == 0x0000)) {
 				//もしCommandモードかつ、追加読み込みバイトではなくかつ、0x0000なら、CommandEndモードに入る
 				m_commandmode = CommandMode::CommandEnd;
 
@@ -164,36 +165,36 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(const u8 input, const pawaco
 			else if ((m_commandmode == CommandMode::Normal) && (static_cast<u16>(m_cvtbuffer32) == 0xFFFF)) {
 				//もしNormalモードかつ0xFFFFなら, Commandモードに入る
 				m_commandmode = CommandMode::Command;
-				str_for_command = "";
-				command_StringCount = 0;
-				count_of_more_u16 = 0;
+				m_str_for_command = "";
+				m_command_StringCount = 0;
+				m_count_of_more_u16 = 0;
 			}
-			else if ((m_commandmode == CommandMode::Command) && (count_of_more_u16 > 0)) {
+			else if ((m_commandmode == CommandMode::Command) && (m_count_of_more_u16 > 0)) {
 				//Commandモードで追加のバイトを読み込んだ時
-				if (loglvl >= last_log_level) {
+				if (loglvl >= m_last_log_level) {
 					char conv[10];
 					std::snprintf(conv, 10, "%04X", m_cvtbuffer32);
-					str_for_command += conv;
-					if (count_of_more_u16 == 1) {
-						str_for_command += "]";
+					m_str_for_command += conv;
+					if (m_count_of_more_u16 == 1) {
+						m_str_for_command += "]";
 					}
 					else {
-						str_for_command += ":";
+						m_str_for_command += ":";
 					}
 				}
-				--count_of_more_u16;
+				--m_count_of_more_u16;
 			}
 			else if (m_commandmode == CommandMode::Command) {
 				//Commandモードの時の処理
 				auto it = TBL_successcommand.find(static_cast<u16>(m_cvtbuffer32));
 				if (it != TBL_successcommand.end()) {
 					//指定したコマンドがテーブルから見つかった時の処理
-					count_of_more_u16 = std::get<0>(it->second);
-					last_log_level = std::get<3>(it->second);
+					m_count_of_more_u16 = std::get<0>(it->second);
+					m_last_log_level = std::get<3>(it->second);
 					//入力したログレベルがテーブルのものよりも高ければ文字表示
-					if (loglvl >= last_log_level) {
-						str_for_command += std::get<1>(it->second);
-						command_StringCount += std::get<2>(it->second);
+					if (loglvl >= m_last_log_level) {
+						m_str_for_command += std::get<1>(it->second);
+						m_command_StringCount += std::get<2>(it->second);
 					}
 				}
 				else {
@@ -216,11 +217,11 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(const u8 input, const pawaco
 			}
 			else if (m_commandmode == CommandMode::CommandEnd) {
 				//CommandEndモードの時の処理 Commandモードで解釈した文字列を送出する
-				*ret =  str_for_command;
-				*numofRealChar = command_StringCount;
-				str_for_command.clear();
-				command_StringCount = 0;
-				count_of_more_u16 = 0;
+				*ret =  m_str_for_command;
+				*numofRealChar = m_command_StringCount;
+				m_str_for_command.clear();
+				m_command_StringCount = 0;
+				m_count_of_more_u16 = 0;
 				m_commandmode = CommandMode::Normal;
 				m_funcstate = FuncState::request_LObyte;
 				return FuncState::pushedstring;
@@ -231,7 +232,6 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(const u8 input, const pawaco
 		}
 	}
 
-
 	//サクセスモード以外でのテキスト処理
 	else {
 		//下位バイト待ちの時
@@ -241,7 +241,8 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(const u8 input, const pawaco
 			return FuncState::request_HIbyte;
 		}
 		//上位バイト待ちの時
-		else if (this->m_funcstate == FuncState::request_HIbyte) {
+		//else if (this->m_funcstate == FuncState::request_HIbyte) {
+		else {
 			m_cvtbuffer32 += (input << 8);
 
 			if ((static_cast<u16>(m_cvtbuffer32) == 0xFFFF)|| (static_cast<u16>(m_cvtbuffer32) == 0xFFFE)) {
@@ -260,8 +261,6 @@ pawacode::FuncState pawacode::PawaCode::PCodeToSJIS(const u8 input, const pawaco
 				m_cvtbuffer32 = 0;
 				return FuncState::pushedstring;
 			}
-
-		
 		}
 	}
 }
