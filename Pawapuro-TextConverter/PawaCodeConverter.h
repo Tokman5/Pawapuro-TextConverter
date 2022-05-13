@@ -1,56 +1,62 @@
 #pragma once
+
 #include <string>
 
 #include "PTCTypes.h"
 
-namespace pawacode {
+enum class TargetGame {
+	pawa7, pawa7k,
+	pawa8, pawa8k,
+	pawa9, pawa9k,
+	pawa10, pawa10k,
+	pawa11, pawa11k,
+	pawa12, pawa12k,
+	pawa2009,
+};
 
-	enum class Target {
-		pawa8,pawa8k,
-		pawa9,pawa9k,
-		pawa10,pawa10k,
-		pawa11,pawa11k,
-		pawa12,pawa12k
-	};
+class PawaCode {
 
-	enum class FuncState {
-		request_LObyte,
-		request_HIbyte,
-		request_morebyte,
-		pushedstring
-	};
+};
 
-	enum class TargetGameMode {
-		none,
-		success
-	};
+class PawaCodeV2001 {
+	public:
+		enum class PCtoSJISFuncState {
+			normal,
+			request_morebytes,
+		};
 
-	class PawaCode {
-		public:
-			PawaCode(pawacode::Target tar);
-			u16 PCodeToSJIS(u16 input);
-			u16 SJISToPCode(u16 input); //ShiftJISからの変換
-			FuncState PCodeToSJIS(const u8 input, const TargetGameMode target, const int loglvl, std::string* ret, int* numofRealChar);
-			FuncState GetFuncState() const { return m_funcstate; };
-		private:
+		enum class TargetMode {
+			normal,
+			success
+		};
 
-			pawacode::Target m_target;
-			FuncState m_funcstate;
-			u16 m_numofSPCharacter;
+	public:
+		PawaCodeV2001(TargetGame target);
+		void ReInit(TargetGame target);
+		u16 SJISToPCode(u16 sjis);
+		u16 PCodeToSJIS(u16 pcode);		//サクセス構文を解釈しない
+		PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const TargetMode gamemode, const int log_level, std::string& retstr, int& numofchar);	//ゲームモードを指定するとサクセス構文を解釈する
+		u32 PCodeToUTF32(u16 pcode);
 
-			u32 m_cvtbuffer32;
-			enum class CommandMode {
-				Normal,
-				Command,
-				CommandEnd,
-				Mode_null
-			}m_commandmode;
+	private:
+		TargetGame m_targetgame;
+		int m_number_of_SPchars;
 
-			u16 m_SJISbuffer16;
-			//success処理時
-			int m_command_StringCount;
-			int m_count_of_more_u16;
-			int m_last_log_level;
-			std::string m_str_for_command;
-	};
-}
+		//サクセス構文用
+		enum class CommandMode {
+			Normal,
+			Command,
+			CommandEnd,
+			Mode_null
+		}m_commandmode;
+		int m_command_StringCount;
+		int m_count_of_command_byte;
+		int m_command_log_level;
+		std::string m_str_for_command;
+
+	private:
+		void PCodeToRowCell(u16 pcode, int& row, int& cell);
+		u16 RowCellToPCode(int row, int cell);
+		void SJISToRowCell(u16 sjis, int& row, int& cell);
+		u16 RowCellToSJIS(int row, int cell);
+};

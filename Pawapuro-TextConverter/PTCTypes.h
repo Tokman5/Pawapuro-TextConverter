@@ -1,10 +1,9 @@
-#pragma once
+#ifndef PTCTYPES_H
+#define PTCTYPES_H
 
 #include <cstdint>
 
-
-
-//ƒ^ƒCƒvéŒ¾
+//ã‚¿ã‚¤ãƒ—å®£è¨€
 using s8 = int8_t;
 using u8 = uint8_t;
 using s16 = int16_t;
@@ -18,3 +17,5 @@ using sptr = intptr_t;
 using uptr = uintptr_t;
 
 using uint = unsigned int;
+
+#endif
