@@ -1,4 +1,5 @@
 #include <string>
+#include <string_view>
 #include "PTCTypes.h"
 #include "PawaTable.h"
 #include "PawaCodeConverter.h"

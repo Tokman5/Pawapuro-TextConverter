@@ -69,7 +69,7 @@ static constexpr u32 specialcharacterV2001[][3]{
 //サクセスモード　Commandモード時のコマンドリスト パワプロ8用
 //u16 キー、value{ int 追加で2バイト読む回数（2バイト読むなら 1 ）、string コンバータ用文字列、int 代替文字列の文字数、int ログレベル }
 //ログレベル・・・0で必ず表示、2で詳細表示用
- static const std::unordered_map<u16, std::tuple<int, std::string, int, int > > TBL_successcommandV2001{
+ static const std::unordered_map<u16, std::tuple<int, std::string_view, int, int > > TBL_successcommandV2001{
 	{0x0000 ,{0, "　", 0, 0}}, {0x0001 ,{0, "\n", 0, 0}}, {0x0002 ,{0, "\n", 0, 0}}, {0x0003 ,{0, "\n", 0, 0}},
 	{0x0005 ,{0, "\n", 0, 0}}, {0x0006 ,{0, "\n", 0, 0}}, {0x0007 ,{0, "\n", 0, 0}}, {0x0009 ,{0, "[SKIP]", 0, 1}},
 	{0x000A ,{1, "[0x0A:", 0, 2}}, {0x000B ,{1, "[Goto:", 0, 2}}, 
@@ -121,7 +121,7 @@ static constexpr u32 specialcharacterV2001[][3]{
  //サクセスモード　Commandモード時のコマンドリスト パワプロ7用
 //u16 キー、value{ int 追加で2バイト読む回数（2バイト読むなら 1 ）、string コンバータ用文字列、int 代替文字列の文字数、int ログレベル }
 //ログレベル・・・0で必ず表示、2で詳細表示用
- static const std::unordered_map<u16, std::tuple<int, std::string, int, int > > TBL_successcommandV2000{
+ static const std::unordered_map<u16, std::tuple<int, std::string_view, int, int > > TBL_successcommandV2000{
 	{0x0000 ,{0, "　", 0, 0}}, {0x0001 ,{0, "\n", 0, 0}}, {0x0002 ,{0, "\n", 0, 0}}, {0x0003 ,{0, "\n", 0, 0}},
 	{0x0005 ,{0, "\n", 0, 0}}, {0x0006 ,{0, "\n", 0, 0}}, {0x0007 ,{0, "\n", 0, 0}}, {0x0008 ,{0, "[SKIP]", 0, 1}},
 	{0x0009 ,{1, "[0x09:", 0, 2}},{0x000A ,{1, "[Goto:", 0, 2}}, {0x000B ,{1, "[Gosub:", 0, 2}},
