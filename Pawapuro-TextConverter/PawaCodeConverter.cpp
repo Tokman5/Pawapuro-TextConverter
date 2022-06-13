@@ -47,6 +47,7 @@ PawaCodeV2001::PawaCodeV2001(TargetGame target)
 	: m_targetgame(target),
 	m_number_of_SPchars(0)
 {
+	m_targetmode = TargetMode::normal;
 	m_commandmode = CommandMode::Normal;
 	m_command_StringCount = 0;
 	m_count_of_command_byte = 0;
@@ -152,10 +153,10 @@ u16 PawaCodeV2001::PCodeToSJIS(u16 pcode)
 }
 
 
-PawaCode::PCtoSJISFuncState PawaCodeV2001::PCodeToSJIS(const u16 pcode, const TargetMode gamemode, const int log_level, std::string& retstr, int& numofchar)
+PawaCode::PCtoSJISFuncState PawaCodeV2001::PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar)
 {
 	//サクセスモードのテキスト処理
-	if (gamemode == TargetMode::success) {
+	if (m_targetmode == TargetMode::success) {
 		if ((this->m_commandmode == CommandMode::Command) && (m_count_of_command_byte == 0) && (pcode == 0x0000)) {
 			//もしCommandモードかつ、追加読み込みバイトではなくかつ、0x0000なら、CommandEndモードに入る
 			m_commandmode = CommandMode::CommandEnd;
@@ -207,10 +208,9 @@ PawaCode::PCtoSJISFuncState PawaCodeV2001::PCodeToSJIS(const u16 pcode, const Ta
 		}
 		else if (m_commandmode == CommandMode::CommandEnd) {
 			//CommandEndモード
-			retstr = m_str_for_command;
+			retstr = std::move(m_str_for_command);
 			numofchar = m_command_StringCount;
 			m_count_of_command_byte = 0;
-			m_str_for_command = "";
 			m_commandmode = CommandMode::Normal;
 			return PCtoSJISFuncState::normal;
 		}
@@ -226,7 +226,7 @@ PawaCode::PCtoSJISFuncState PawaCodeV2001::PCodeToSJIS(const u16 pcode, const Ta
 		else {
 			//それ以外なら文字表示
 			u16 ans = PCodeToSJIS(pcode);
-			retstr = std::string{ static_cast<char>(ans >> 8), static_cast<char>(ans & 0xFF) };
+			retstr = std::move(std::string{ static_cast<char>(ans >> 8), static_cast<char>(ans & 0xFF) });
 			numofchar = 1;
 		}
 		return PCtoSJISFuncState::normal;
@@ -286,6 +286,7 @@ inline u16 PawaCodeV2001::RowCellToPCode(int row, int cell) const
 
 PawaCodeV2000::PawaCodeV2000(TargetGame target)
 {
+	m_targetmode = TargetMode::normal;
 	m_isKetteiban = true;
 	m_number_of_SPchars = numofTBL7k;
 	m_commandmode = CommandMode::Normal;
@@ -373,10 +374,10 @@ u16 PawaCodeV2000::PCodeToSJIS(u16 pcode)
 	return sjis;
 }
 
-PawaCode::PCtoSJISFuncState PawaCodeV2000::PCodeToSJIS(const u16 pcode, const TargetMode gamemode, const int log_level, std::string& retstr, int& numofchar)
+PawaCode::PCtoSJISFuncState PawaCodeV2000::PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar)
 {
 	//サクセスモード指定時の処理
-	if ((gamemode == TargetMode::success)) {
+	if ((m_targetmode == TargetMode::success)) {
 		if ((this->m_commandmode == CommandMode::Command) && (m_count_of_command_byte == 0) && (pcode == 0x0000)) {
 			//もしCommandモードかつ、追加読み込みバイトではなくかつ、0x0000なら、CommandEndモードに入る
 			m_commandmode = CommandMode::CommandEnd;
@@ -427,10 +428,9 @@ PawaCode::PCtoSJISFuncState PawaCodeV2000::PCodeToSJIS(const u16 pcode, const Ta
 			return PCtoSJISFuncState::normal;
 		}
 		else if (m_commandmode == CommandMode::CommandEnd) {
-			retstr = m_str_for_command;
+			retstr = std::move(m_str_for_command);
 			numofchar = m_command_StringCount;
 			m_count_of_command_byte = 0;
-			m_str_for_command = "";
 			m_commandmode = CommandMode::Normal;
 			return PCtoSJISFuncState::normal;
 		}
@@ -446,7 +446,7 @@ PawaCode::PCtoSJISFuncState PawaCodeV2000::PCodeToSJIS(const u16 pcode, const Ta
 		else {
 			//それ以外なら文字表示
 			u16 ans = PCodeToSJIS(pcode);
-			retstr = std::string{ static_cast<char>(ans >> 8), static_cast<char>(ans & 0xFF) };
+			retstr = std::move(std::string{ static_cast<char>(ans >> 8), static_cast<char>(ans & 0xFF) });
 			numofchar = 1;
 		}
 		return PCtoSJISFuncState::normal;
@@ -550,4 +550,201 @@ inline u16 PawaCodeV2000::RowCellToPCode(int row, int cell) const
 		pcode += (cell + 0x5E);
 	}
 	return pcode;
+}
+
+
+
+//パワプロ9～サクセス用
+size_t PawaCodeV2002::CompressArray(const std::vector<u16>& row_source, std::vector<u16>& target)
+{
+	target.clear();
+
+	size_t index = 0;
+	target.reserve(std::ceil( row_source.size() * 0.75 ));
+
+	for (size_t i = 0, size = row_source.size(); i < size; i++) {
+		switch (i % 4) {
+			case 0:
+				target.emplace_back(row_source[i] << 4);
+				index++;
+				break;
+			case 1:
+				target[index - 1] += ((row_source[i] >> 8) & 0xF);
+				target.emplace_back(row_source[i] << 8);
+				index++;
+				break;
+			case 2:
+				target[index - 1] += (row_source[i] & 0x0FF0) >> 4;
+				target.emplace_back((row_source[i] & 0xF) << 12);
+				index++;
+				break;
+			case 3:
+				target[index - 1] += (row_source[i] & 0x0FFF);
+				break;
+			default:
+				break;
+		}
+	}
+
+	return index;
+}
+
+size_t PawaCodeV2002::DecompressArray(const std::vector<u16>& compressed, std::vector<u16>& target)
+{
+	target.clear();
+
+	size_t index = 0; //解凍後の要素数
+	bool remainder = false;
+
+	for (size_t i = 0, size = compressed.size(); i < size; i++) {
+		switch (i % 3) {
+			case 0:
+				target.emplace_back((compressed[i] >> 4) & 0x0FFF);
+				target.emplace_back((compressed[i] & 0xF) << 8);
+				index += 1;
+				remainder = true;
+				break;
+			case 1:
+				target[index] += (compressed[i] >> 8) & 0xFF;
+				target.emplace_back((compressed[i] & 0xFF) << 4);
+				index += 1;
+				remainder = true;
+				break;
+			case 2:
+				target[index] += (compressed[i] >> 12) & 0xF;
+				target.emplace_back(compressed[i] & 0x0FFF);
+				index += 2;
+				remainder = false;
+				break;
+			default:
+				break;
+		}
+
+	}
+
+	/*if (remainder) {
+		target.pop_back();
+	}
+	else if (target[index - 1] == 0x00 || target[index -1] == 0x0FFF) {
+		target.pop_back();
+	}*/
+
+	return index;
+}
+
+PawaCodeV2002::PawaCodeV2002(TargetGame game)
+	:PawaCodeV2001(game)
+{
+	m_commandmode = CommandMode::Command;
+	m_compressedArray.clear();
+}
+
+PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar)
+{
+	//サクセスモードのテキスト処理
+	if (m_targetmode == TargetMode::success) {
+		if (this->m_count_of_command_byte > 0) {
+			//Commandモードで追加のバイトを読み込んだ時
+			if (log_level >= m_command_log_level) {
+				//指定したログレベルがコマンド固有のものより高ければ表示
+				char conv[10];
+				std::snprintf(conv, 10, "%04X", pcode);
+				m_str_for_command += conv;
+				if (m_count_of_command_byte == 1) {
+					m_str_for_command += "]";
+				}
+				else {
+					m_str_for_command += ":";
+				}
+			}
+			--m_count_of_command_byte;
+		}
+		else {
+			//追加の読み込みバイトが無いとき
+
+			if ((this->m_commandmode == CommandMode::Command)) {
+				//もしCommandモードの時
+				switch (pcode) {
+					//case 0x0000:
+					case 0x0100:
+					case 0x0200:
+					case 0x0300:
+					case 0x0400:
+					case 0x0500:
+					case 0x0600:
+						//コマンドモード終わり
+						retstr = std::move(m_str_for_command);
+						numofchar = m_command_StringCount;
+						m_count_of_command_byte = 0;
+						m_commandmode = CommandMode::Normal;
+						return PCtoSJISFuncState::normal;
+
+						break;
+					default:
+						//コマンド解釈
+						/*auto it = TBL_successcommandV2002.find(pcode);
+						if (it != TBL_successcommandV2002.end()) {
+							//指定したコマンドがテーブルから見つかった時の処理
+							m_count_of_command_byte = std::get<0>(it->second);
+							m_command_log_level = std::get<3>(it->second);
+							//入力したログレベルがテーブルのものよりも高ければ文字表示
+							if (log_level >= m_command_log_level) {
+								m_str_for_command += std::get<1>(it->second);
+								m_command_StringCount += std::get<2>(it->second);
+							}
+						}*/
+						return PCtoSJISFuncState::request_morebytes;
+						break;
+				}
+			}
+			else if ((this->m_commandmode == CommandMode::Normal) && pcode == 0xFFFF) {
+				//Normalモードからコマンドモードに入る時の処理
+				retstr.clear();
+				std::vector<u16> row_array;
+				row_array.reserve(std::ceil(m_compressedArray.size() * 1.5));
+				PawaCodeV2002::DecompressArray(m_compressedArray, row_array);
+
+				for (const auto& v : row_array) {
+					u16 sjis = PawaCodeV2001::PCodeToSJIS(v);
+					if (sjis == 0) {
+						sjis = 0x2020;
+					}
+					retstr.push_back((sjis >> 8) & 0xFF);
+					retstr.push_back(sjis & 0xFF);
+				}
+
+				m_commandmode = CommandMode::Command;
+				numofchar = row_array.size();
+				m_compressedArray.clear();
+				m_str_for_command = "\n";
+				m_command_StringCount = 0;
+				m_count_of_command_byte = 0;
+				m_command_log_level = 0;
+				return PCtoSJISFuncState::normal;
+			}
+			else {
+				//Normalモード時の処理
+				m_compressedArray.emplace_back(pcode);	//Commandモードに入るまでバッファに溜める
+
+			}
+
+		}
+		return PCtoSJISFuncState::request_morebytes;
+	}
+	//サクセスモード以外でのテキスト処理
+	else {
+		if ((pcode == 0xFFFF) || (pcode == 0xFFFE)) {
+			//0xFFFFまたは0xFFFEなら改行
+			retstr = "\n";
+			numofchar = -1;
+		}
+		else {
+			//それ以外なら文字表示
+			u16 ans = PawaCodeV2001::PCodeToSJIS(pcode);
+			retstr = std::move(std::string{ static_cast<char>(ans >> 8), static_cast<char>(ans & 0xFF) });
+			numofchar = 1;
+		}
+		return PCtoSJISFuncState::normal;
+	}
+
 }

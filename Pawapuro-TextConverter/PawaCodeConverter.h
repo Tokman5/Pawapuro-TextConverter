@@ -30,7 +30,8 @@ class PawaCode {
 	public:
 		virtual u16 SJISToPCode(u16 sjis) =0;
 		virtual u16 PCodeToSJIS(u16 pcode) =0;
-		virtual PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const TargetMode gamemode, const int log_level, std::string& retstr, int& numofchar) = 0;
+		virtual PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar) = 0;
+		void SetTargetMode(TargetMode mode) { m_targetmode = mode; }
 	protected:
 		//サクセス構文用
 		enum class CommandMode {
@@ -39,6 +40,7 @@ class PawaCode {
 			CommandEnd,
 			Mode_null
 		}m_commandmode;
+		TargetMode m_targetmode;
 		int m_command_StringCount;
 		int m_count_of_command_byte;
 		int m_command_log_level;
@@ -58,7 +60,7 @@ class PawaCodeV2001 :public PawaCode {				//パワプロ8～2009用
 		void ReInit(TargetGame target);
 		u16 SJISToPCode(u16 sjis) override;
 		u16 PCodeToSJIS(u16 pcode) override;		//サクセス構文を解釈しない
-		PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const TargetMode gamemode, const int log_level, std::string& retstr, int& numofchar) override;	//ゲームモードを指定するとサクセス構文を解釈する
+		PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar) override;	//ゲームモードを指定するとサクセス構文を解釈する
 		u32 PCodeToUTF32(u16 pcode);
 
 	protected:
@@ -77,7 +79,7 @@ class PawaCodeV2000 :public PawaCode{				//パワプロ7用
 		PawaCodeV2000() :PawaCodeV2000(TargetGame::pawa7k) {};
 		u16 SJISToPCode(u16 sjis) override;
 		u16 PCodeToSJIS(u16 pcode) override;		//サクセス構文を解釈しない
-		PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const TargetMode gamemode, const int log_level, std::string& retstr, int& numofchar) override;
+		PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar) override;
 
 	protected:
 		bool m_isKetteiban;
@@ -86,4 +88,16 @@ class PawaCodeV2000 :public PawaCode{				//パワプロ7用
 	protected:
 		bool PCodeToRowCell(u16 pcode, int& row, int& cell) const;	//隙間にある文字かどうかチェック falseで隙間にある文字
 		u16 RowCellToPCode(int row, int cell) const;
+};
+
+class PawaCodeV2002 :public PawaCodeV2001 {
+	public:
+		static size_t CompressArray(const std::vector<u16>& row_source , std::vector<u16>& target);
+		static size_t DecompressArray(const std::vector<u16>& compressed, std::vector<u16>& target);
+
+	public:
+		PawaCodeV2002(TargetGame game);
+		PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar) override;
+	protected:
+		std::vector<u16> m_compressedArray;
 };
