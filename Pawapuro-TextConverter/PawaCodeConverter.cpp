@@ -701,7 +701,12 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 				row_array.reserve(std::ceil(m_compressedArray.size() * 1.5));
 
 				if (pcode != 0xFFFF) {
-					m_compressedArray.emplace_back(pcode & 0xF000);
+					if (m_compressedArray.size() % 3 == 1) {
+						m_compressedArray.emplace_back(pcode & 0xFF00) ;
+					}
+					else if (m_compressedArray.size() % 3 == 2) {
+						m_compressedArray.emplace_back(pcode & 0xF000);
+					}
 				}
 
 				if (PawaCodeV2002::DecompressArray(m_compressedArray, row_array)){
