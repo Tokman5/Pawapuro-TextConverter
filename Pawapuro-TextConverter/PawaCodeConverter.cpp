@@ -633,6 +633,29 @@ PawaCodeV2002::PawaCodeV2002(TargetGame game)
 {
 	m_commandmode = CommandMode::Command;
 	m_compressedArray.clear();
+
+	switch (game)
+	{
+	case PawaCode::TargetGame::pawa9:
+	case PawaCode::TargetGame::pawa9k:
+		break;
+	case PawaCode::TargetGame::pawa10:
+	case PawaCode::TargetGame::pawa10k:
+		m_ptr_commandTBL = &TBL_successcommandV2003;
+		break;
+	case PawaCode::TargetGame::pawa11:
+	case PawaCode::TargetGame::pawa11k:
+		break;
+	case PawaCode::TargetGame::pawa12:
+	case PawaCode::TargetGame::pawa12k:
+		break;
+	case PawaCode::TargetGame::pawa2009:
+		break;
+	default:
+		break;
+	}
+
+	m_ptr_commandTBL = &TBL_successcommandV2003; // temp
 }
 
 PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar)
@@ -679,13 +702,11 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 						break;
 					default:
 						//コマンド解釈
-						auto it = TBL_successcommandV2003.find(pcode);
-						if (it != TBL_successcommandV2003.end()) {
-							//指定したコマンドがテーブルから見つかった時の処理
+						auto it = m_ptr_commandTBL->find(pcode);
+						if (it != m_ptr_commandTBL->end()) {			//指定したコマンドがテーブルから見つかった時の処理
 							m_count_of_command_byte = std::get<0>(it->second);
 							m_command_log_level = std::get<3>(it->second);
-							//入力したログレベルがテーブルのものよりも高ければ文字表示
-							if (log_level >= m_command_log_level) {
+							if (log_level >= m_command_log_level) {		//入力したログレベルがテーブルのものよりも高ければ文字表示
 								m_str_for_command += std::get<1>(it->second);
 								m_command_StringCount += std::get<2>(it->second);
 							}
@@ -694,8 +715,7 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 						break;
 				}
 			}
-			else if ((this->m_commandmode == CommandMode::Normal) && (pcode & 0x0FFF) == 0x0FFF) {
-				//Normalモードからコマンドモードに入る時の処理
+			else if ((this->m_commandmode == CommandMode::Normal) && (pcode & 0x0FFF) == 0x0FFF) {	//Normalモードからコマンドモードに入る時の処理
 				retstr.clear();
 				std::vector<u16> row_array;
 				row_array.reserve(std::ceil(m_compressedArray.size() * 1.5));
@@ -709,15 +729,15 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 					}
 				}
 
-				if (PawaCodeV2002::DecompressArray(m_compressedArray, row_array)){
+				if (PawaCodeV2002::DecompressArray(m_compressedArray, row_array)){	//圧縮バイト列の解凍
 					row_array.pop_back();
 				}
 
-				for (const auto& v : row_array) {
-					if ((v & 0x0FFF) == 0x0FFE) {
+				for (const auto& v : row_array) {		//生バイト列から文字への変換
+					if ((v & 0x0FFF) == 0x0FFE) {		//0xFFEなら改行
 						retstr += '\n';
 					}
-					else {
+					else {								//そうでなければ文字に変換
 						u16 sjis = PawaCodeV2001::PCodeToSJIS(v);
 						retstr.push_back((sjis >> 8) & 0xFF);
 						retstr.push_back(sjis & 0xFF);

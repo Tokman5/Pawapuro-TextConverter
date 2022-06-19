@@ -1,5 +1,4 @@
-#ifndef PTCTYPES_H
-#define PTCTYPES_H
+#pragma once
 
 #include <cstdint>
 
@@ -18,4 +17,4 @@ using uptr = uintptr_t;
 
 using uint = unsigned int;
 
-#endif
+

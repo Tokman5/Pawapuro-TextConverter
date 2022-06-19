@@ -1,7 +1,8 @@
 #pragma once
 
 #include <string>
-
+#include <string_view>
+#include <unordered_map>
 #include "PTCTypes.h"
 
 
@@ -100,4 +101,5 @@ class PawaCodeV2002 :public PawaCodeV2001 {
 		PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar) override;
 	protected:
 		std::vector<u16> m_compressedArray;
+		const std::unordered_map<u16, std::tuple<int, std::string_view, int, int > >* m_ptr_commandTBL;
 };
