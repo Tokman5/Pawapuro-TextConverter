@@ -93,7 +93,7 @@ class PawaCodeV2000 :public PawaCode{				//ÉpÉèÉvÉç7óp
 class PawaCodeV2002 :public PawaCodeV2001 {
 	public:
 		static size_t CompressArray(const std::vector<u16>& row_source , std::vector<u16>& target);
-		static size_t DecompressArray(const std::vector<u16>& compressed, std::vector<u16>& target);
+		static bool DecompressArray(const std::vector<u16>& compressed, std::vector<u16>& target);
 
 	public:
 		PawaCodeV2002(TargetGame game);

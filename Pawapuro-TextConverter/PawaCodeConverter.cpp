@@ -128,10 +128,13 @@ u16 PawaCodeV2001::SJISToPCode(u16 sjis)
 
 u16 PawaCodeV2001::PCodeToSJIS(u16 pcode)
 {
-	if (pcode == 0xFFFF) {
-		return 0xFFFF;
-	}
 	u16 pcode12bit = pcode & 0x0FFF; //パワプロ文字コード
+	if (pcode12bit == 0x0FFF) {
+		return 0x0FFF;
+	}
+	else if (pcode12bit == 0x0FFE) {
+		return 0x0FFE;
+	}
 	u16 sjis = pcode12bit;
 
 	//特殊文字判定
@@ -589,7 +592,7 @@ size_t PawaCodeV2002::CompressArray(const std::vector<u16>& row_source, std::vec
 	return index;
 }
 
-size_t PawaCodeV2002::DecompressArray(const std::vector<u16>& compressed, std::vector<u16>& target)
+bool PawaCodeV2002::DecompressArray(const std::vector<u16>& compressed, std::vector<u16>& target)
 {
 	target.clear();
 
@@ -622,14 +625,7 @@ size_t PawaCodeV2002::DecompressArray(const std::vector<u16>& compressed, std::v
 
 	}
 
-	/*if (remainder) {
-		target.pop_back();
-	}
-	else if (target[index - 1] == 0x00 || target[index -1] == 0x0FFF) {
-		target.pop_back();
-	}*/
-
-	return index;
+	return remainder;
 }
 
 PawaCodeV2002::PawaCodeV2002(TargetGame game)
@@ -672,6 +668,7 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 					case 0x0400:
 					case 0x0500:
 					case 0x0600:
+					case 0x0700:
 						//コマンドモード終わり
 						retstr = std::move(m_str_for_command);
 						numofchar = m_command_StringCount;
@@ -682,8 +679,8 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 						break;
 					default:
 						//コマンド解釈
-						/*auto it = TBL_successcommandV2002.find(pcode);
-						if (it != TBL_successcommandV2002.end()) {
+						auto it = TBL_successcommandV2003.find(pcode);
+						if (it != TBL_successcommandV2003.end()) {
 							//指定したコマンドがテーブルから見つかった時の処理
 							m_count_of_command_byte = std::get<0>(it->second);
 							m_command_log_level = std::get<3>(it->second);
@@ -692,31 +689,40 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 								m_str_for_command += std::get<1>(it->second);
 								m_command_StringCount += std::get<2>(it->second);
 							}
-						}*/
+						}
 						return PCtoSJISFuncState::request_morebytes;
 						break;
 				}
 			}
-			else if ((this->m_commandmode == CommandMode::Normal) && pcode == 0xFFFF) {
+			else if ((this->m_commandmode == CommandMode::Normal) && (pcode & 0x0FFF) == 0x0FFF) {
 				//Normalモードからコマンドモードに入る時の処理
 				retstr.clear();
 				std::vector<u16> row_array;
 				row_array.reserve(std::ceil(m_compressedArray.size() * 1.5));
-				PawaCodeV2002::DecompressArray(m_compressedArray, row_array);
+
+				if (pcode != 0xFFFF) {
+					m_compressedArray.emplace_back(pcode & 0xF000);
+				}
+
+				if (PawaCodeV2002::DecompressArray(m_compressedArray, row_array)){
+					row_array.pop_back();
+				}
 
 				for (const auto& v : row_array) {
-					u16 sjis = PawaCodeV2001::PCodeToSJIS(v);
-					if (sjis == 0) {
-						sjis = 0x2020;
+					if ((v & 0x0FFF) == 0x0FFE) {
+						retstr += '\n';
 					}
-					retstr.push_back((sjis >> 8) & 0xFF);
-					retstr.push_back(sjis & 0xFF);
+					else {
+						u16 sjis = PawaCodeV2001::PCodeToSJIS(v);
+						retstr.push_back((sjis >> 8) & 0xFF);
+						retstr.push_back(sjis & 0xFF);
+					}
 				}
 
 				m_commandmode = CommandMode::Command;
 				numofchar = row_array.size();
 				m_compressedArray.clear();
-				m_str_for_command = "\n";
+				m_str_for_command = "";
 				m_command_StringCount = 0;
 				m_count_of_command_byte = 0;
 				m_command_log_level = 0;
