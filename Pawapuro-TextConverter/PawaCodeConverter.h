@@ -3,6 +3,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 #include "PTCTypes.h"
 
 
@@ -93,13 +94,19 @@ class PawaCodeV2000 :public PawaCode{				//パワプロ7用
 
 class PawaCodeV2002 :public PawaCodeV2001 {
 	public:
-		static size_t CompressArray(const std::vector<u16>& row_source , std::vector<u16>& target);
-		static bool DecompressArray(const std::vector<u16>& compressed, std::vector<u16>& target);
+		static size_t CompressArray(const std::vector<u16>& row_source , std::vector<u16>& target);	//生文字コード→圧縮バイト列
+		static bool DecompressArray(const std::vector<u16>& compressed, std::vector<u16>& target);	//圧縮バイト列→生文字コード　余りの要素が出たらtrue,そうでなければfalse
 
 	public:
 		PawaCodeV2002(TargetGame game);
 		PCtoSJISFuncState PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar) override;
+
 	protected:
 		std::vector<u16> m_compressedArray;
 		const std::unordered_map<u16, std::tuple<int, std::string_view, int, int > >* m_ptr_commandTBL;
+
+	protected:
+		void Pushed_Back_RowArray(u16 pcode);
+		std::vector<u16> m_rowArray;	//生文字コード配列
+		size_t m_realSize_of_rowArray;	//生文字コード配列の完全な要素の数　圧縮→生　1→1　2→2　3→4
 };

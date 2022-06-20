@@ -326,9 +326,7 @@ int FileReadMode(char* path)
 				std::printf("%s", dispChar.c_str());
 
 				if (target_mode == PawaCode::TargetMode::success) {
-					if (moji_size == -1) {
-						std::printf("\n");
-					}
+					//temp
 				}
 				else {
 					dispcount += moji_size;
