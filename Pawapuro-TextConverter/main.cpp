@@ -98,6 +98,7 @@ bool searchTargetPawaGame(size_t argc, char* argv[]) {
 				else if ((strcmp("11k", argv[i + 1]) == 0) || (strcmp("pawa11k", argv[i + 1]) == 0)) { target_game = PawaCode::TargetGame::pawa11k; }
 				else if ((strcmp("12", argv[i + 1]) == 0) || (strcmp("pawa12", argv[i + 1]) == 0)) { target_game = PawaCode::TargetGame::pawa12; }
 				else if ((strcmp("12k", argv[i + 1]) == 0) || (strcmp("pawa12k", argv[i + 1]) == 0)) { target_game = PawaCode::TargetGame::pawa12k; }
+				else if ((strcmp("15", argv[i + 1]) == 0) || (strcmp("pawa15", argv[i + 1]) == 0)) { target_game = PawaCode::TargetGame::pawa15; }
 				else if ((strcmp("2009", argv[i + 1]) == 0) || (strcmp("pawa2009", argv[i + 1]) == 0)) { target_game = PawaCode::TargetGame::pawa2009; }
 				else {
 					errstatus = i + 1;

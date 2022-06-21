@@ -16,7 +16,7 @@ class PawaCode {
 			pawa10, pawa10k,
 			pawa11, pawa11k,
 			pawa12, pawa12k,
-			pawa2009,
+			pawa15, pawa2009,
 		};
 		
 		enum class PCtoSJISFuncState {
@@ -104,6 +104,9 @@ class PawaCodeV2002 :public PawaCodeV2001 {
 	protected:
 		std::vector<u16> m_compressedArray;
 		const std::unordered_map<u16, std::tuple<int, std::string_view, int, int > >* m_ptr_commandTBL;
+
+	protected:
+		bool CheckCommandEnd(u16 pcode);
 
 	protected:
 		void Pushed_Back_RowArray(u16 pcode);

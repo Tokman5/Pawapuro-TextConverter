@@ -68,6 +68,7 @@ PawaCodeV2001::PawaCodeV2001(TargetGame target)
 	case TargetGame::pawa11k:		number = numofTBL11k;	break;
 	case TargetGame::pawa12:		number = numofTBL12;	break;
 	case TargetGame::pawa12k:		number = numofTBL12k;	break;
+	case TargetGame::pawa15:		number = numofTBL15;	break;
 	case TargetGame::pawa2009:		number = numofTBL2009;	break;
 	default:						number = numofTBLMAX;	break;
 	}
@@ -90,6 +91,7 @@ void PawaCodeV2001::ReInit(TargetGame target)
 		case TargetGame::pawa11k:		number = numofTBL11k;	break;
 		case TargetGame::pawa12:		number = numofTBL12;	break;
 		case TargetGame::pawa12k:		number = numofTBL12k;	break;
+		case TargetGame::pawa15:		number = numofTBL15;	break;
 		case TargetGame::pawa2009:		number = numofTBL2009;	break;
 		default:						number = numofTBL2009;	break;
 	}
@@ -662,10 +664,12 @@ PawaCodeV2002::PawaCodeV2002(TargetGame game)
 	m_rowArray.clear();
 	m_realSize_of_rowArray = 0;
 
+	m_ptr_commandTBL = nullptr;
 	switch (game)
 	{
 	case PawaCode::TargetGame::pawa9:
 	case PawaCode::TargetGame::pawa9k:
+		m_ptr_commandTBL = &TBL_successcommandV2002;
 		break;
 	case PawaCode::TargetGame::pawa10:
 	case PawaCode::TargetGame::pawa10k:
@@ -677,13 +681,16 @@ PawaCodeV2002::PawaCodeV2002(TargetGame game)
 	case PawaCode::TargetGame::pawa12:
 	case PawaCode::TargetGame::pawa12k:
 		break;
+	case PawaCode::TargetGame::pawa15:
 	case PawaCode::TargetGame::pawa2009:
+		m_ptr_commandTBL = &TBL_successcommandV2009;
 		break;
 	default:
+		
 		break;
 	}
 
-	m_ptr_commandTBL = &TBL_successcommandV2003; // temp
+
 }
 
 PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const int log_level, std::string& retstr, int& numofchar)
@@ -711,43 +718,33 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 
 			if ((this->m_commandmode == CommandMode::Command)) {
 				//もしCommandモードの時
-				switch (pcode) {
-					//case 0x0000:
-					case 0x0100:		//左1
-					case 0x0200:		//右1
-					case 0x0300:		//左2
-					case 0x0400:		//右2
-					case 0x0500:		//吹き出し無し
-					case 0x0600:		//吹き出し位置維持
-					case 0x0700:		//バックログ用
-						//コマンドモード終わり
-						retstr = std::move(m_str_for_command);
-						numofchar = m_command_StringCount;
-						m_count_of_command_byte = 0;
-						m_command_StringCount = 0;
-						m_commandmode = CommandMode::Normal;
-						return PCtoSJISFuncState::normal;
-						break;
-
-					default:
-						//コマンド解釈
-						auto it = m_ptr_commandTBL->find(pcode & 0xFF);
-						if (it != m_ptr_commandTBL->end()) {			//指定したコマンドがテーブルから見つかった時の処理
-							m_count_of_command_byte = std::get<0>(it->second);
-							m_command_log_level = std::get<3>(it->second);
-							if (log_level >= m_command_log_level) {		//入力したログレベルがテーブルのものよりも高ければ文字表示
-								m_str_for_command += std::get<1>(it->second);
-								m_command_StringCount = std::get<2>(it->second);
-								if (m_command_StringCount == -1) {
-									char conv[10];
-									std::snprintf(conv, 10, "%02X", (pcode >> 8) & 0xFF);
-									m_str_for_command += conv;
-									m_str_for_command += "]";
-								}
+				if (CheckCommandEnd(pcode)) {
+					//コマンドモード終わり
+					retstr = std::move(m_str_for_command);
+					numofchar = m_command_StringCount;
+					m_count_of_command_byte = 0;
+					m_command_StringCount = 0;
+					m_commandmode = CommandMode::Normal;
+					return PCtoSJISFuncState::normal;
+				}
+				else {
+					//コマンド解釈
+					auto it = m_ptr_commandTBL->find(pcode & 0xFF);
+					if (it != m_ptr_commandTBL->end()) {			//指定したコマンドがテーブルから見つかった時の処理
+						m_count_of_command_byte = std::get<0>(it->second);
+						m_command_log_level = std::get<3>(it->second);
+						if (log_level >= m_command_log_level) {		//入力したログレベルがテーブルのものよりも高ければ文字表示
+							m_str_for_command += std::get<1>(it->second);
+							m_command_StringCount = std::get<2>(it->second);
+							if (m_command_StringCount == -1) {
+								char conv[10];
+								std::snprintf(conv, 10, "%02X", (pcode >> 8) & 0xFF);
+								m_str_for_command += conv;
+								m_str_for_command += "]";
 							}
 						}
-						return PCtoSJISFuncState::request_morebytes;
-						break;
+					}
+					return PCtoSJISFuncState::request_morebytes;
 				}
 			}
 			else {		//Normalモード時の処理
@@ -805,4 +802,27 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 		return PCtoSJISFuncState::normal;
 	}
 
+}
+
+
+//trueでコマンドモードを終える　falseで通常のコマンド
+bool  PawaCodeV2002::CheckCommandEnd(u16 pcode)
+{
+	if (pcode & 0xFF) {	//下位バイトが00でなければfalse
+		return false;
+	}
+	else {
+		u8 p8bit = pcode >> 8;
+		if (m_targetgame == PawaCode::TargetGame::pawa2009) {
+			if (p8bit <= 0x1D && p8bit >= 0x01) {
+				return true;
+			}
+		}
+		else {
+			if (p8bit <= 0x07 && p8bit >= 0x01) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
