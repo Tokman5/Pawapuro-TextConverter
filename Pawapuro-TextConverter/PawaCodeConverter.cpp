@@ -630,6 +630,7 @@ bool PawaCodeV2002::DecompressArray(const std::vector<u16>& compressed, std::vec
 	return remainder;
 }
 
+//圧縮を展開しながら生コード配列に追加する関数
 void PawaCodeV2002::Pushed_Back_RowArray(u16 pcode)
 {
 	switch (m_realSize_of_rowArray % 4)
@@ -736,7 +737,7 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 						if (log_level >= m_command_log_level) {		//入力したログレベルがテーブルのものよりも高ければ文字表示
 							m_str_for_command += std::get<1>(it->second);
 							m_command_StringCount = std::get<2>(it->second);
-							if (m_command_StringCount == -1) {
+							if (m_command_StringCount == -1) {		//上位バイトを利用するコマンド
 								char conv[10];
 								std::snprintf(conv, 10, "%02X", (pcode >> 8) & 0xFF);
 								m_str_for_command += conv;
@@ -752,7 +753,7 @@ PawaCode::PCtoSJISFuncState PawaCodeV2002::PCodeToSJIS(const u16 pcode, const in
 
 				if ((m_rowArray[m_realSize_of_rowArray - 1] & 0x0FFF) == 0x0FFF) {	//生配列にしたとき0x0FFFなら文字列を出力してコマンドモードに入る
 
-					do {
+					do {	//末尾の要素を取り除き文字データだけにする
 						m_realSize_of_rowArray--;
 						m_rowArray.pop_back();
 					} while ((m_rowArray.back() & 0x0FFF) == 0x0FFF && m_rowArray.size() > 1);
@@ -813,7 +814,7 @@ bool  PawaCodeV2002::CheckCommandEnd(u16 pcode)
 	}
 	else {
 		u8 p8bit = pcode >> 8;
-		if (m_targetgame == PawaCode::TargetGame::pawa2009) {
+		if (m_targetgame == PawaCode::TargetGame::pawa2009 || m_targetgame == PawaCode::TargetGame::pawa15) {
 			if (p8bit <= 0x1D && p8bit >= 0x01) {
 				return true;
 			}
