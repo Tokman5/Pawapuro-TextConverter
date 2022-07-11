@@ -815,7 +815,7 @@ bool  PawaCodeV2002::CheckCommandEnd(u16 pcode)
 	else {
 		u8 p8bit = pcode >> 8;
 		if (m_targetgame == PawaCode::TargetGame::pawa2009 || m_targetgame == PawaCode::TargetGame::pawa15) {
-			if (p8bit <= 0x1D && p8bit >= 0x01) {
+			if (p8bit <= 0x1E && p8bit >= 0x01) {
 				return true;
 			}
 		}
