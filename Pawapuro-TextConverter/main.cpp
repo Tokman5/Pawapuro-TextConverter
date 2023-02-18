@@ -1,7 +1,9 @@
 //パワプロテキストコンバータ
-//
+//2022-2023
 
+#include <algorithm>
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 #include <string>
 #include <limits>
@@ -32,7 +34,8 @@ No Commands Specified: Interactive Mode
 OPTION:
 
 -v0 -v1 -v2           Log Level: 0 = Minimal, 1 = Normal, 2 = Verbose
--g <TARGET> -t <TARGET>
+-g <TARGET>
+-t <TARGET>
 --game <TARGET>
 --target <TARGET>     Target Game: pawa7 pawa7k
                                    pawa8 pawa8k pawa9 pawa9k
@@ -51,7 +54,7 @@ OPTION:
 "\n Page 3/3\n 1 : ファイル読み込みモードヘルプ\n\n 7 : 前のページへ\n\n 9 : プログラムを終了\n"};
 }
 
-bool searchHelpCommand(size_t argc, char* argv[]) {
+bool searchHelpCommand(int argc, char* argv[]) {
 
 	for (size_t i = 0; i < argc; ++i) {
 		if ((strcmp("-h", argv[i]) == 0) || (strcmp("--help", argv[i]) == 0)|| (strcmp("/h", argv[i]) == 0)) {
@@ -62,7 +65,7 @@ bool searchHelpCommand(size_t argc, char* argv[]) {
 	return false;
 }
 
-int searchLogLevelCommand(size_t argc, char* argv[]) {
+int searchLogLevelCommand(int argc, char* argv[]) {
 	int ans = 0;
 	for (size_t i = 1; i < argc; ++i) {
 		if ((strcmp("-v0", argv[i]) == 0)) {
@@ -82,8 +85,8 @@ int searchLogLevelCommand(size_t argc, char* argv[]) {
 	return ans;
 }
 
-bool searchTargetPawaGame(size_t argc, char* argv[]) {
-	for (size_t i = 1; i < argc - 1; ++i) {
+bool searchTargetPawaGame(int argc, char* argv[]) {
+	for (int i = 1; i < argc - 1; ++i) {
 		if ((strcmp("-t", argv[i]) == 0)|| (strcmp("--target", argv[i]) == 0) ||
 			(strcmp("-g", argv[i]) == 0) || (strcmp("--game", argv[i]) == 0)) {
 				if ((strcmp("7", argv[i + 1]) == 0) || (strcmp("pawa7", argv[i + 1]) == 0)) { ::target_game = PawaCode::TargetGame::pawa7; }
@@ -110,8 +113,8 @@ bool searchTargetPawaGame(size_t argc, char* argv[]) {
 	return true;
 }
 
-bool searchTargetGameMode(size_t argc, char* argv[]) {
-	for (size_t i = 1; i < argc - 1; ++i) {
+bool searchTargetGameMode(int argc, char* argv[]) {
+	for (int i = 1; i < argc - 1; ++i) {
 		if ((strcmp("-m", argv[i]) == 0) || (strcmp("--mode", argv[i]) == 0)) {
 			if ((strcmp("normal", argv[i + 1]) == 0)|| (strcmp("none", argv[i + 1]) == 0)) {
 				target_mode = PawaCodeV2001::TargetMode::normal;
@@ -209,7 +212,7 @@ void ToShiftJISModeEx()
 
 			if (output.size() > 0) {
 				for (const auto& v : output) {
-					const char conv[3]{ (v >> 8),(v & 0xFF),NULL };
+					const char conv[3]{ (v >> 8),(v & 0xFF),'\0'};
 					std::printf("%s", conv);
 				}
 				std::printf("\n");
@@ -263,7 +266,7 @@ void ToPawaCodeMode()
 				}
 				else {	//文字表示処理
 					if (display_mode == 0) {
-						const char mulchar[]{ static_cast<u8>(character >> 8),static_cast<u8>(character & 0xFF), '\0' };
+						const char mulchar[]{ static_cast<const char>(character >> 8),static_cast<const char>(character & 0xFF), '\0' };
 						std::printf("%s (%04X): %04X\n", mulchar, character, pcc->SJISToPCode(character));
 					}
 					else if (display_mode == 2) {	//バイト列表示モード
@@ -349,15 +352,13 @@ int FileReadMode(char* path)
 		std::fprintf(stderr, "エラー:ファイルを開くことができませんでした\nFile: %s\n", path);
 		return 1;
 	}
-	
-	file.seekg(0, std::ios::end);
-	size_t size = file.tellg();
-	file.seekg(0);
-	//std::printf("size: %zX\n", size);
+
+	size_t filesize = std::filesystem::file_size(path);
 
 	//データコピー
-	u8* data = new u8[size];
-	file.read(reinterpret_cast<char*>(data), size);
+	std::vector<u8> datavec;
+	datavec.resize(filesize);
+	file.read(reinterpret_cast<char*>(datavec.data()), filesize);
 
 	if (file) {
 		file.close();
@@ -370,8 +371,8 @@ int FileReadMode(char* path)
 		int dispcount = 0;
 		std::string dispChar;
 		int moji_size = 0;
-		for (size_t i = 0; i <= size; ++i) {
-			buffer = data[i];
+		for (size_t i = 0; i < filesize; ++i) {
+			buffer = datavec[i];
 			if (!(i & 1)) {
 				//読み込みバイトが1バイト目ならループを進めてもう1バイト読み込む
 				inputchar = buffer;
@@ -400,11 +401,10 @@ int FileReadMode(char* path)
 		}
 	}
 
-	delete[] data;
 	return 0;
 }
 
-int main(size_t argc, char* argv[]) 
+int main(int argc, char* argv[]) 
 {
 	if (searchHelpCommand(argc, argv)) {
 		std::fprintf(stderr,"%s\n", usagestring);
