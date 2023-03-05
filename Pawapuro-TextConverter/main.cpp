@@ -59,7 +59,7 @@ OPTION:
 bool searchHelpCommand(int argc, char* argv[]) {
 
 	for (size_t i = 0; i < argc; ++i) {
-		if ((strcmp("-h", argv[i]) == 0) || (strcmp("--help", argv[i]) == 0)|| (strcmp("/h", argv[i]) == 0)) {
+		if ((strcmp("-h", argv[i]) == 0) || (strcmp("--help", argv[i]) == 0) || (strcmp("/h", argv[i]) == 0) || (strcmp("/?", argv[i]) == 0)) {
 			return true;
 		}
 	}
@@ -165,7 +165,7 @@ void ToShiftJISMode()
 			}
 			const u16 ans = pcc->PCodeToSJIS(inputchar);
 
-			const char anschar[3]{ (ans >> 8),(ans & 0xFF),NULL };
+			const char anschar[3]{ (ans >> 8),(ans & 0xFF),'\0' };
 			std::printf("%04X: %04X: %s\n", inputchar & 0xFFF, ans, anschar);
 		}
 	}
@@ -201,7 +201,6 @@ void ToShiftJISModeEx()
 			inputstring.erase(std::remove_if(inputstring.begin(), inputstring.end(), [](unsigned char c) { return !std::isxdigit(c, std::locale::classic()); }), inputstring.end());
 
 			std::vector<u16> output;
-			output.clear();
 
 			if (const size_t arraysize = inputstring.size(); arraysize) {
 #ifdef _DEBUG
@@ -210,7 +209,7 @@ void ToShiftJISModeEx()
 
 				//文字列をu16の数値へ変換
 				for (size_t i = 0; i < (arraysize / 4); i++) {
-					const char inpchr[5]{ inputstring[i * 4 + 2],inputstring[i * 4 + 3],inputstring[i * 4],inputstring[i * 4 + 1],NULL };
+					const char inpchr[5]{ inputstring[i * 4 + 2],inputstring[i * 4 + 3],inputstring[i * 4],inputstring[i * 4 + 1],'\0' };
 					u16 conv;
 					std::from_chars(&inpchr[0], &inpchr[4], conv, 16);
 					output.emplace_back(pcc->PCodeToSJIS(conv)); //シフトJISへ変換してoutputに追加
@@ -219,8 +218,8 @@ void ToShiftJISModeEx()
 
 			//文字列の出力
 			if (output.size() > 0) {
-				for (const auto& v : output) {
-					const char conv[3]{ (v >> 8),(v & 0xFF),'\0'};
+				for (const auto v : output) {
+					const char conv[3]{ (v >> 8),(v & 0xFF),'\0' };
 					std::printf("%s", conv);
 				}
 				std::printf("\n");
@@ -256,11 +255,8 @@ void ToPawaCodeMode()
 			continue;
 		}
 		else {
-			if (inputstring.size() == 3) {
-				std::transform(inputstring.cbegin(), inputstring.cend(), inputstring.begin(), [](unsigned char c) {return std::tolower(c, std::locale::classic()); });
-				if (inputstring == "end") {
-					break;
-				}
+			if (inputstring == "end" || inputstring == "END") {
+				break;
 			}
 
 			//文字処理
@@ -365,7 +361,7 @@ int FileReadMode(char* path)
 		return 1;
 	}
 
-	size_t filesize = std::filesystem::file_size(path);
+	const size_t filesize = std::filesystem::file_size(path);
 
 	//データコピー
 	std::vector<u8> datavec;
