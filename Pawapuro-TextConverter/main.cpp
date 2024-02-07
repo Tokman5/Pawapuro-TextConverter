@@ -48,7 +48,7 @@ OPTION:
 -----------------------------------------------)**";
 
 	const char* menu_string[] = {"\n Page 1/3  パワプロ8～2009用\n 1 : パワプロ文字コード(1文字)→シフトJIS\n 2 : パワプロ文字コード(バイト列)→シフトJIS\n\
-\n 4 : シフトJIS→パワプロ文字コード\n 5 : シフトJIS→パワプロ文字コード(バイト列)\n 6 : シフトJIS→パワプロ文字コード(バイト列,圧縮)\n\n\
+ 3 : パワプロ文字コード(圧縮バイト列)→シフトJIS\n 4 : シフトJIS→パワプロ文字コード\n 5 : シフトJIS→パワプロ文字コード(バイト列)\n 6 : シフトJIS→パワプロ文字コード(バイト列,圧縮)\n\n\
  8 : 次のページへ\n 9 : プログラムを終了\n",
 "\n Page 2/3  パワプロ7用\n 1 : パワプロ文字コード(1文字)→シフトJIS\n 2 : パワプロ文字コード(バイト列)→シフトJIS\n\
  3 : シフトJIS→パワプロ文字コード\n 4 : シフトJIS→パワプロ文字コード(バイト列)\n\n\n\
@@ -180,14 +180,13 @@ void ToShiftJISModeEx()
 		pcc = std::make_unique<PawaCodeV2000>(PawaCodeV2000(::s_target_game));
 	}
 	else {
-		pcc = std::make_unique<PawaCodeV2001>(PawaCodeV2001(::s_target_game));
+		pcc = std::make_unique<PawaCodeV2002>(PawaCodeV2002(::s_target_game));
 	}
-
-	pcc->SetTargetMode(PawaCode::TargetMode::normal);
 
 	while (getchar() != '\n');
 	std::cout << "\nパワプロ文字コード(バイト列)→シフトJIS";
 	while (true) {
+		pcc->SetTargetMode(PawaCode::TargetMode::normal);
 		std::cout << "\n変換したいバイト列を入力してください。(Hex,リトルエンディアン,\"end\"で戻る)\n";
 		if (std::getline(std::cin, inputstring)) {
 			if (inputstring.size() == 3) {
@@ -212,12 +211,27 @@ void ToShiftJISModeEx()
 					const char inpchr[5]{ inputstring[i * 4 + 2],inputstring[i * 4 + 3],inputstring[i * 4],inputstring[i * 4 + 1],'\0' };
 					u16 conv;
 					std::from_chars(&inpchr[0], &inpchr[4], conv, 16);
-					output.emplace_back(pcc->PCodeToSJIS(conv)); //シフトJISへ変換してoutputに追加
+					if (s_compress_mode == false) {
+						output.emplace_back(pcc->PCodeToSJIS(conv)); //シフトJISへ変換してoutputに追加
+					}
+					else {
+						output.emplace_back(conv);
+					}
 				}
 			}
 
+
 			//文字列の出力
 			if (output.size() > 0) {
+				if (s_compress_mode) {
+					std::vector<u16> tmparray;
+					bool ret = PawaCodeV2002::DecompressArray(output, tmparray);
+					output = std::move(tmparray);
+					for (auto& v : output) {
+						v = pcc->PCodeToSJIS(v);
+					}
+				}
+				
 				for (const auto v : output) {
 					const char conv[3]{ (v >> 8),(v & 0xFF),'\0' };
 					std::printf("%s", conv);
@@ -473,7 +487,8 @@ int main(int argc, char* argv[])
 					ToShiftJISModeEx();
 				}
 				else if (convmode == 3) {
-
+					s_compress_mode = true;
+					ToShiftJISModeEx();
 				}
 				else if (convmode == 4) {
 					s_display_mode = 0;
